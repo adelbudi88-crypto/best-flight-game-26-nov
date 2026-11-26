@@ -53,6 +53,8 @@ function stageCover(flight, world) {
     if (!next) return autopilot(f, w, { x: w.runway.x, y: 90, z: w.runway.z }, 55);
     return autopilot(f, w, next, 62);
   });
+  // v2 — the cover must show the density: a live dialog line + delivered cargo.
+  flight.state.dialog = { who: 'BU RATNA', line: '"Obatnya sampai tepat waktu!" +Rp120rb (tepat waktu, tip!)', timer: 99 };
   return { screen: SCREEN_PLAY, best: 1250 };
 }
 
@@ -69,6 +71,8 @@ function stageRing(flight, world) {
     if (!next) return { roll: 0, pitch: 0, throttleUp: false, throttleDown: true, brake: false };
     return autopilot(f, w, next, 40);
   });
+  // v2 — ring shot: the next cargo owner talks while the ring glows ahead.
+  flight.state.dialog = { who: 'PAK DEDI', line: 'Pompa bisa jalan lagi kalau suku cadang ini sampai. Hati-hati, Kapten!', timer: 99 };
   return { screen: SCREEN_PLAY, best: 1250 };
 }
 
@@ -93,6 +97,8 @@ function stageApproach(flight, world) {
     };
     return autopilot(f, w, target, dz > 500 ? 50 : 38);
   }, (f, w) => w.runway.z - 60 - f.state.z < 350);
+  // v2 — approach shot: co-pilot calls the landing over the Bali terraces.
+  flight.state.dialog = { who: 'SARI (co-pilot)', line: 'Runway di depan! Sawah Jatiluwih di kiri — turun pelan, flare lembut.', timer: 99 };
   return { screen: SCREEN_PLAY, best: 2450 };
 }
 
@@ -105,6 +111,8 @@ function stageStorm(flight, world) {
     if (!next) return autopilot(f, w, { x: w.runway.x, y: 90, z: w.runway.z }, 55);
     return autopilot(f, w, next, 58);
   });
+  // v2 — storm shot: the storm warning dialog + the urgent cargo on the board.
+  flight.state.dialog = { who: 'SARI (co-pilot)', line: 'Badai di depan! Vaksin Kak Yosua prioritas satu — terbang rendah dan stabil.', timer: 99 };
   return { screen: SCREEN_PLAY, best: 3800 };
 }
 

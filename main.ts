@@ -1,8 +1,13 @@
-// Nusantara Air Courier — a best-flight-game-20261126-0057 entry (Node 22,
-// standard library only). The game is this directory's game/ folder: plain
-// static files a desktop browser loads offline (game/index.html and its ES
-// modules, no library and no network request). This program hands it in: it
-// copies game/ and screenshots/ from beside this file to /output and writes
+// Nusantara Air Courier v2 — a best-flight-game-20261126-0057 entry (Node 22,
+// standard library only). v2 adds the winner-density systems on top of v1's
+// chase view: a named manifest with fare + tip, a per-leg goals checklist, a
+// live rupiah economy with combo/streak, a four-stop route plan, crew and
+// passenger dialog, between-leg refits, a full keyboard bar, and a distinct
+// look per island (Krakatau smoke, Bali terraces + temple, Raja Ampat karst).
+// The game is this directory's game/ folder: plain static files a desktop
+// browser loads offline (game/index.html and its ES modules, no library and
+// no network request). This program hands it in: it copies game/ and
+// screenshots/ from beside this file to /output and writes
 // /output/dossier.json, the summary the judge reads, with the vendored
 // make.fun library.
 //
@@ -22,6 +27,11 @@ mkdirSync(out, { recursive: true });
 cpSync(join(here, 'game'), join(out, 'game'), { recursive: true });
 mkdirSync(join(out, 'screenshots'), { recursive: true });
 if (existsSync(join(here, 'screenshots'))) cpSync(join(here, 'screenshots'), join(out, 'screenshots'), { recursive: true });
+
+// v2 — the entry ships exactly the four deterministic 1280x720 screenshots
+// in screenshots/ (each under 256 KiB, two runs byte-identical); the dossier
+// below refuses anything over those caps, so a bad shot fails here, not at
+// the judge. Never delete /output: this program only ever copies into it.
 
 // The scorer's own caps (reference/gate.json): only text_max_bytes shapes the
 // bytes; the others refuse an entry the scorer would refuse (more than 4

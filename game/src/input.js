@@ -34,7 +34,9 @@ export function createInput(canvas) {
   }
 
   function onKeyDown(event) {
-    const gameKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'a', 's', 'd'];
+    // v2 — TAB toggles the route map (and must not move browser focus);
+    // E is the radio key, 1/2/3 buy refits between legs.
+    const gameKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'a', 's', 'd', 'Tab', 'e', '1', '2', '3'];
     if (gameKeys.includes(storeKey(event))) event.preventDefault();
     if (!event.repeat) pressed.add(KEY_ACTIONS[event.key] ?? storeKey(event));
     keys.add(storeKey(event));

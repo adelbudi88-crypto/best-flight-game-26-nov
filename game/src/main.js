@@ -65,6 +65,7 @@ function runGame() {
   let crashTimer = 0;
   let legBonus = 0;
   let demoMode = true;
+  let routeOverlay = false; // v2 — TAB toggles the big route map
 
   function announce(message) {
     status.textContent = message;
@@ -170,6 +171,14 @@ function runGame() {
     const pressed = input.takePressed();
     if (pressed.has(ACTION_MUTE)) audio.setMuted(!audio.isMuted());
     if (pressed.has(ACTION_RESTART) && screen !== SCREEN_TITLE) startGame();
+    if (pressed.has('Tab') && screen === SCREEN_PLAY) routeOverlay = !routeOverlay;
+    if (pressed.has('e') && screen === SCREEN_PLAY) flight.radio();
+    // v2 — refit: buy upgrades with earned rupiah on the leg-complete screen.
+    if (screen === SCREEN_LEG) {
+      if (pressed.has('1')) flight.buyUpgrade('fuel');
+      if (pressed.has('2')) flight.buyUpgrade('hull');
+      if (pressed.has('3')) flight.buyUpgrade('engine');
+    }
     if (pressed.has(ACTION_PAUSE)) {
       if (screen === SCREEN_PLAY) {
         screen = SCREEN_PAUSED;
@@ -211,7 +220,7 @@ function runGame() {
       screen,
       best,
       time,
-      { bonus: legBonus },
+      { bonus: legBonus, routeOverlay },
     );
     requestAnimationFrame(frame);
   }

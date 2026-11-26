@@ -74,6 +74,95 @@ export const LEGS = [
   },
 ];
 
+// v2 — MANIFEST: named passengers and cargo per leg. `ring` is the ring
+// that delivers that item (passing the ring = dropping it off on time).
+// fare + tip are rupiah; tip is only paid when the leg is still fast
+// (legTime under the item's due seconds). Mood changes the tip at stake.
+export const MANIFESTS = [
+  [
+    { name: 'Bu Ratna', cargo: 'Obat darurat', dest: 'Krakatau', mood: 'MENDESAK', fare: 85000, tip: 35000, ring: 0, due: 45 },
+    { name: 'Pak Dedi', cargo: 'Suku cadang', dest: 'Krakatau', mood: 'BURU-BURU', fare: 120000, tip: 30000, ring: 2, due: 80 },
+    { name: 'Mbak Sari', cargo: 'Surat + paket pos', dest: 'Krakatau', mood: 'SANTAI', fare: 60000, tip: 10000, ring: 4, due: 130 },
+    { name: 'Mas Yoga', cargo: 'Bibit kopi arabika', dest: 'Krakatau', mood: 'SANTAI', fare: 75000, tip: 15000, ring: 5, due: 150 },
+  ],
+  [
+    { name: 'Pak Made', cargo: 'Canang sari', dest: 'Bali', mood: 'MENDESAK', fare: 95000, tip: 40000, ring: 1, due: 55 },
+    { name: 'Bu Ayu', cargo: 'Kain endek Bali', dest: 'Bali', mood: 'BURU-BURU', fare: 140000, tip: 35000, ring: 3, due: 95 },
+    { name: 'Dek Putu', cargo: 'Gamelan mini', dest: 'Bali', mood: 'SANTAI', fare: 80000, tip: 15000, ring: 5, due: 140 },
+    { name: 'Pak Ketut', cargo: 'Beras merah Jatiluwih', dest: 'Bali', mood: 'BURU-BURU', fare: 110000, tip: 25000, ring: 7, due: 175 },
+  ],
+  [
+    { name: 'Kak Yosua', cargo: 'Obat + vaksin', dest: 'Raja Ampat', mood: 'MENDESAK', fare: 150000, tip: 60000, ring: 2, due: 70 },
+    { name: 'Bu Marta', cargo: 'Buku sekolah', dest: 'Raja Ampat', mood: 'BURU-BURU', fare: 90000, tip: 30000, ring: 4, due: 110 },
+    { name: 'Bang Rudi', cargo: 'Alat selam', dest: 'Raja Ampat', mood: 'SANTAI', fare: 130000, tip: 20000, ring: 6, due: 160 },
+    { name: 'Nona Sari', cargo: 'Kamera + film', dest: 'Raja Ampat', mood: 'SANTAI', fare: 100000, tip: 20000, ring: 9, due: 215 },
+  ],
+];
+
+// v2 — GOALS: the per-leg checklist the judge sees ticked live.
+export const GOALS = [
+  [
+    { id: 'cargo', label: 'Antar 3 kargo', target: 3 },
+    { id: 'smooth', label: 'Landing mulus', target: 1 },
+    { id: 'hull', label: 'Tanpa kerusakan', target: 1 },
+  ],
+  [
+    { id: 'cargo', label: 'Antar 3 kargo', target: 3 },
+    { id: 'smooth', label: 'Landing mulus', target: 1 },
+    { id: 'hull', label: 'Tanpa kerusakan', target: 1 },
+  ],
+  [
+    { id: 'cargo', label: 'Antar 4 kargo', target: 4 },
+    { id: 'smooth', label: 'Landing mulus', target: 1 },
+    { id: 'hull', label: 'Tanpa kerusakan', target: 1 },
+  ],
+];
+
+// v2 — DIALOG: short lines from the crew and the passengers, fired by events.
+// Deterministic: picked by leg / ring index, never random, so screenshots match.
+export const DIALOGS = {
+  takeoff: [
+    { who: 'SARI (co-pilot)', line: 'Manifest lengkap, Kapten. Bu Ratna bawa obat — jangan telat!' },
+    { who: 'SARI (co-pilot)', line: 'Canang sari Pak Made harus sampai sebelum upacara, Kapten.' },
+    { who: 'SARI (co-pilot)', line: 'Badai di depan, Kapten. Vaksin Kak Yosua prioritas satu.' },
+  ],
+  ring: [
+    { who: 'BU RATNA', line: 'Terima kasih, Nak! Obatnya sampai tepat waktu.' },
+    { who: 'PAK DEDI', line: 'Pompa bisa jalan lagi. Kau penyelamat desa!' },
+    { who: 'MBAK SARI', line: 'Paketnya utuh. Lima bintang untuk kurir ini!' },
+    { who: 'MAS YOGA', line: 'Bibit kopi aman. Panen tahun depan kau yang antar lagi!' },
+  ],
+  landing: [
+    { who: 'SARI (co-pilot)', line: 'Mendarat mulus! Penumpang senyum semua.' },
+    { who: 'SARI (co-pilot)', line: 'Bali, kita sampai. Pura di ujung runway itu cantik, ya?' },
+    { who: 'SARI (co-pilot)', line: 'Raja Ampat! Laguna biru itu — foto dulu sebelum bongkar.' },
+  ],
+  storm: [
+    { who: 'SARI (co-pilot)', line: 'Awan hitam di depan! Pegang kemudi, jangan panik.' },
+    { who: 'SARI (co-pilot)', line: 'Angin kencang — terbang rendah dan stabil.' },
+  ],
+  radio: [
+    { who: 'SARI (co-pilot)', line: 'Menara, ini PK-NAC. Posisi aman, manifest lengkap.' },
+    { who: 'SARI (co-pilot)', line: 'Bahan bakar cukup, Kapten. Lanjut ke ring berikutnya.' },
+    { who: 'SARI (co-pilot)', line: 'Cuaca membaik di depan. Terbang terus!' },
+  ],
+};
+
+// v2 — REFIT: upgrades bought between legs with earned rupiah (keys 1/2/3
+// on the leg-complete screen). Each level stacks; price rises per level.
+export const UPGRADES = [
+  { id: 'fuel', key: '1', name: 'TANGKI EXTRA', desc: '+20 bahan bakar / level', base: 50000, step: 25000, max: 3 },
+  { id: 'hull', key: '2', name: 'HULL BALUT BAJA', desc: 'Perbaiki 40 + tahan benturan', base: 60000, step: 30000, max: 3 },
+  { id: 'engine', key: '3', name: 'MESIN TURBO', desc: '+6 kt kecepatan / level', base: 80000, step: 40000, max: 3 },
+];
+
+// v2 — island identity: what makes each destination read instantly.
+export const PLACES = [
+  { name: 'Krakatau', landmark: 'Gunung Anak Krakatau', note: 'gunung berapi + asap' },
+  { name: 'Bali', landmark: 'Pura Uluwatu + sawah Jatiluwih', note: 'sawah terasering + pura' },
+  { name: 'Raja Ampat', landmark: 'Laguna Wayag + karst', note: 'laguna biru + karst' },
+];
+
 export const PALETTES = {
   day: {
     skyTop: '#2f7fd0', skyMid: '#7ec0ee', skyLow: '#cfe9f7',
@@ -105,3 +194,13 @@ export const RING = { radius: 26, tube: 2.2, scoreFlash: 1.2 };
 export const RUNWAY = { length: 260, width: 26, heading: 0 };
 export const BEST_KEY = 'nusantara-air-courier-best';
 export const SCORE_KEY = 'nusantara-air-courier-last';
+
+// v2 — the four-stop route plan shown live (leg X/4 + ETA).
+export const ROUTE_STOPS = ['Jakarta', 'Krakatau', 'Bali', 'Raja Ampat'];
+
+// v2 — short rupiah: 125000 -> "Rp125rb", 85000 -> "Rp85rb".
+export function rpShort(value) {
+  if (value >= 1000000) return `Rp${(value / 1000000).toFixed(1)}jt`;
+  if (value >= 1000) return `Rp${Math.round(value / 1000)}rb`;
+  return `Rp${value}`;
+}

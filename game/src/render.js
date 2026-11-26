@@ -3,7 +3,7 @@
 // world is drawn far-to-near so nearer terrain covers farther, and every number
 // on the panel comes from the live flight state — nothing here is decoration
 // that pretends to be an instrument.
-import { CAMERA, KT, LEGS, PALETTES, PLANE, RING, RUNWAY, VIEW } from './config.js';
+import { CAMERA, KT, LEGS, PALETTES, PLACES, PLANE, RING, ROUTE_STOPS, RUNWAY, UPGRADES, VIEW, rpShort } from './config.js';
 import { bearingTo, createCamera } from './project.js';
 
 export const SCREEN_TITLE = 'title';
@@ -615,7 +615,259 @@ export function createRenderer(canvas) {
     ctx.fillText(`${String(Math.round(headingDeg)).padStart(3, '0')}°`, cx, y - 26);
   }
 
-  function drawHud(flight, world, leg, best) {
+  // --- v2: MANIFEST (left) — named passengers/cargo, mood, fare + tip -------
+  function drawManifest(flight, leg) {
+    const x = 14;
+    const y = 124;
+    const w = 282;
+    const items = flight.manifest ?? [];
+    const h = 30 + items.length * 44 + 8;
+    ctx.fillStyle = 'rgba(10, 16, 24, 0.82)';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = 'rgba(255, 159, 46, 0.6)';
+    ctx.strokeRect(x, y, w, h);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#ff9f2e';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText(`✈ MANIFEST — ${leg.from.toUpperCase()} → ${leg.to.toUpperCase()}`, x + 10, y + 20);
+    items.forEach((item, i) => {
+      const iy = y + 30 + i * 44;
+      const done = item.status === 'delivered';
+      ctx.fillStyle = done ? 'rgba(34, 230, 200, 0.14)' : 'rgba(255,255,255,0.05)';
+      ctx.fillRect(x + 6, iy, w - 12, 40);
+      ctx.fillStyle = done ? '#22e6c8' : '#ffe9a8';
+      ctx.font = 'bold 13px sans-serif';
+      const moodColor = item.mood === 'MENDESAK' ? '#ff6b5e' : item.mood === 'BURU-BURU' ? '#ffb02e' : '#9fd8cf';
+      ctx.fillText(`${done ? '✓' : '○'} ${item.name}`, x + 12, iy + 15);
+      ctx.fillStyle = moodColor;
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(item.mood, x + w - 10, iy + 15);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#cfe9f7';
+      ctx.font = '11px sans-serif';
+      ctx.fillText(`R${item.ring + 1} · ${item.cargo}`, x + 12, iy + 32);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = done ? '#22e6c8' : '#7dffd9';
+      ctx.font = 'bold 11px monospace';
+      ctx.fillText(done ? `+${rpShort(item.paid)} ✓` : `${rpShort(item.fare)} + ${rpShort(item.tip)} tip`, x + w - 10, iy + 32);
+      ctx.textAlign = 'left';
+    });
+  }
+
+  // --- v2: ROUTE PLAN + GOALS (right) -----------------------------------------
+  function drawRouteGoals(flight, leg, extra) {
+    const x = VIEW.width - 282;
+    const y = 148;
+    const w = 268;
+    const goals = flight.goals ?? [];
+    const h = 24 + ROUTE_STOPS.length * 24 + 14 + goals.length * 22 + 34;
+    ctx.fillStyle = 'rgba(10, 16, 24, 0.82)';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = 'rgba(34, 230, 200, 0.6)';
+    ctx.strokeRect(x, y, w, h);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#22e6c8';
+    ctx.font = 'bold 13px sans-serif';
+    const etaMin = Math.max(0, Math.round((leg.parTime - flight.legTime) / 60));
+    ctx.fillText(`RUTE — LEG ${flight.leg + 1}/3 · ETA ${etaMin} mnt`, x + 10, y + 20);
+    ROUTE_STOPS.forEach((stop, i) => {
+      const sy = y + 28 + i * 24;
+      const reached = i <= flight.leg;
+      const current = i === flight.leg + 1;
+      ctx.fillStyle = reached ? '#22e6c8' : current ? '#ffb02e' : '#5a6b7a';
+      ctx.beginPath();
+      ctx.arc(x + 16, sy - 4, 6, 0, Math.PI * 2);
+      ctx.fill();
+      if (i < ROUTE_STOPS.length - 1) {
+        ctx.strokeStyle = reached ? '#22e6c8' : '#33424f';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x + 16, sy + 2);
+        ctx.lineTo(x + 16, sy + 20);
+        ctx.stroke();
+      }
+      ctx.fillStyle = reached ? '#eafffb' : current ? '#ffe9a8' : '#8fa3b3';
+      ctx.font = `bold ${current ? 14 : 12}px sans-serif`;
+      ctx.fillText(`${reached ? '✓ ' : ''}${stop}${current ? '  ← TUJUAN' : ''}`, x + 30, sy);
+    });
+    const gy = y + 28 + ROUTE_STOPS.length * 24 + 6;
+    ctx.fillStyle = '#ff9f2e';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText('MISI LEG INI', x + 10, gy);
+    goals.forEach((goal, i) => {
+      const yy = gy + 20 + i * 22;
+      ctx.fillStyle = goal.done ? '#22e6c8' : '#cfe9f7';
+      ctx.font = '13px sans-serif';
+      ctx.fillText(`${goal.done ? '☑' : '☐'} ${goal.label}${goal.id === 'cargo' ? `  (${Math.min(goal.progress, goal.target)}/${goal.target})` : ''}`, x + 10, yy);
+    });
+    const place = PLACES[flight.leg] ?? PLACES[0];
+    ctx.fillStyle = '#9fd8cf';
+    ctx.font = 'italic 11px sans-serif';
+    ctx.fillText(`${place.landmark}`, x + 10, gy + 20 + goals.length * 22 + 6);
+    if (extra?.routeOverlay) {
+      ctx.fillStyle = 'rgba(10, 16, 24, 0.92)';
+      ctx.fillRect(VIEW.width / 2 - 260, 150, 520, 150);
+      ctx.strokeStyle = '#22e6c8';
+      ctx.strokeRect(VIEW.width / 2 - 260, 150, 520, 150);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#7dffd9';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.fillText('PETA RUTE — NUSANTARA AIR COURIER', VIEW.width / 2, 178);
+      ctx.fillStyle = '#cfe9f7';
+      ctx.font = '14px sans-serif';
+      ctx.fillText('Jakarta → Krakatau → Bali → Raja Ampat', VIEW.width / 2, 206);
+      ctx.fillText('4 pemberhentian · 3 leg · cuaca makin buruk tiap leg', VIEW.width / 2, 230);
+      ctx.fillStyle = '#ffe9a8';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillText(`Leg ${flight.leg + 1}/3: ${leg.name} — ${flight.ringsHit}/${leg.rings} ring`, VIEW.width / 2, 258);
+      ctx.fillText('Tekan TAB lagi untuk menutup peta', VIEW.width / 2, 282);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  // --- v2: DIALOG bubble (centre, under the beacon) ---------------------------
+  // Hidden while the route map overlay is open, so the two never collide.
+  function drawDialog(flight, extra) {
+    const dialog = flight.dialog;
+    if (!dialog || dialog.timer <= 0) return;
+    if (extra?.routeOverlay) return;
+    const boxW = 620;
+    const boxX = VIEW.width / 2 - boxW / 2;
+    const boxY = 196;
+    ctx.fillStyle = 'rgba(10, 16, 24, 0.88)';
+    ctx.fillRect(boxX, boxY, boxW, 56);
+    ctx.strokeStyle = 'rgba(255, 233, 168, 0.7)';
+    ctx.strokeRect(boxX, boxY, boxW, 56);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#ffb02e';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText(`${dialog.who}`, boxX + 14, boxY + 19);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '15px sans-serif';
+    // Wrap the line to the box width.
+    const words = dialog.line.split(' ');
+    let line = '';
+    let ly = boxY + 40;
+    for (const word of words) {
+      const test = line ? `${line} ${word}` : word;
+      if (ctx.measureText(test).width > boxW - 28 && line) {
+        ctx.fillText(line, boxX + 14, ly);
+        line = word;
+        ly += 0; // one extra line would overflow the bubble; keep it short
+      } else {
+        line = test;
+      }
+    }
+    if (line) ctx.fillText(line, boxX + 14, ly);
+  }
+
+  // --- v2: KEYBOARD BAR — every control, always visible ------------------------
+  function drawKeyboardBar() {
+    const y = VIEW.height - 122 - 24;
+    ctx.fillStyle = 'rgba(10, 16, 24, 0.9)';
+    ctx.fillRect(0, y, VIEW.width, 24);
+    ctx.fillStyle = 'rgba(34, 230, 200, 0.4)';
+    ctx.fillRect(0, y, VIEW.width, 1);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#9fd8cf';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('WASD / ←↑↓→ TERBANG   ·   SHIFT / CTRL THROTTLE   ·   SPACE REM   ·   E RADIO   ·   TAB PETA RUTE   ·   1/2/3 REFIT ANTAR LEG   ·   P JEDA   ·   M SUARA   ·   R ULANG   ·   KLIK KEMUDI', VIEW.width / 2, y + 16);
+  }
+
+  // --- v2: ISLAND IDENTITY — each destination reads differently ---------------
+  function drawLandmarks(world, plane, palette, legIndex, time) {
+    if (legIndex === 0) {
+      // Krakatau: smoke plumes over every volcano in view.
+      for (const island of world.islands) {
+        if (!island.volcano) continue;
+        const dz = island.z - plane.z;
+        if (dz < 0 || dz > 1200 || Math.abs(island.x - plane.x) > 900) continue;
+        const peak = camera.project(island.x, island.peak, island.z, plane);
+        if (!peak) continue;
+        const s = peak.scale;
+        for (let i = 0; i < 4; i += 1) {
+          const rise = ((time * 12 + i * 26) % 110);
+          const px = peak.x + Math.sin(i * 2.1) * 8 * s * 0.4 + rise * 0.25;
+          const py = peak.y - rise * s * 0.55;
+          ctx.fillStyle = `rgba(200, 200, 205, ${0.55 - rise * 0.004})`;
+          ctx.beginPath();
+          ctx.arc(px, py, (10 + i * 7) * s * 0.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = '#e8e8e8';
+        ctx.font = `bold ${Math.max(11, Math.min(18, 14 * s))}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('ANAK KRAKATAU', peak.x, peak.y - 130 * s * 0.5);
+      }
+    } else if (legIndex === 1) {
+      // Bali: rice terraces + a meru temple on the nearest green islands.
+      for (const island of world.islands) {
+        if (island.height < 20 || island.volcano) continue;
+        const dz = island.z - plane.z;
+        if (dz < 0 || dz > 800 || Math.abs(island.x - plane.x) > 700) continue;
+        const top = camera.project(island.x, island.peak, island.z, plane);
+        if (!top) continue;
+        const s = top.scale;
+        if (s < 0.25) continue;
+        // Terraces: stacked green arcs down the slope.
+        ctx.strokeStyle = 'rgba(120, 200, 90, 0.85)';
+        ctx.lineWidth = Math.max(1, 2 * s);
+        for (let t = 0; t < 4; t += 1) {
+          ctx.beginPath();
+          ctx.arc(top.x, top.y + t * 14 * s, (18 + t * 16) * s, Math.PI * 1.15, Math.PI * 1.85);
+          ctx.stroke();
+        }
+        // Meru temple: three stacked roofs on the peak.
+        ctx.fillStyle = '#8a5a2e';
+        for (let r = 0; r < 3; r += 1) {
+          const rw = (26 - r * 7) * s;
+          ctx.beginPath();
+          ctx.moveTo(top.x - rw, top.y - r * 12 * s);
+          ctx.lineTo(top.x, top.y - (r * 12 + 10) * s);
+          ctx.lineTo(top.x + rw, top.y - r * 12 * s);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.fillStyle = '#ffe9a8';
+        ctx.font = `bold ${Math.max(11, Math.min(17, 13 * s))}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('PURA + SAWAH JATILUWIH', top.x, top.y - 46 * s);
+        break; // one labelled island is enough per frame
+      }
+    } else {
+      // Raja Ampat: karst towers rising from a turquoise lagoon.
+      for (const island of world.islands) {
+        if (island.height > 40) continue;
+        const dz = island.z - plane.z;
+        if (dz < 0 || dz > 900 || Math.abs(island.x - plane.x) > 800) continue;
+        const base = camera.project(island.x, 0, island.z, plane);
+        if (!base) continue;
+        const s = base.scale;
+        if (s < 0.3) continue;
+        ctx.fillStyle = 'rgba(64, 224, 208, 0.35)';
+        ctx.beginPath();
+        ctx.ellipse(base.x, base.y, 90 * s, 18 * s, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#3f6b4f';
+        ctx.beginPath();
+        ctx.moveTo(base.x - 22 * s, base.y);
+        ctx.lineTo(base.x - 8 * s, base.y - 70 * s);
+        ctx.lineTo(base.x + 6 * s, base.y - 78 * s);
+        ctx.lineTo(base.x + 20 * s, base.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#eafffb';
+        ctx.font = `bold ${Math.max(11, Math.min(17, 13 * s))}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('LAGUNA WAYAG — RAJA AMPAT', base.x, base.y - 88 * s);
+        break;
+      }
+    }
+    void palette;
+  }
+
+  function drawHud(flight, world, leg, best, extra) {
     const headingDeg = ((flight.heading * 180 / Math.PI) % 360 + 360) % 360;
     // Top-left: the three numbers the brief demands, big and lit.
     ctx.textAlign = 'left';
@@ -628,25 +880,28 @@ export function createRenderer(canvas) {
     ctx.fillText(`ALT ${String(Math.round(flight.alt)).padStart(4, '0')} m`, 26, 42);
     ctx.fillText(`SPD ${String(Math.round(flight.speed / KT)).padStart(3, '0')} kt`, 26, 72);
     ctx.fillText(`HDG ${String(Math.round(headingDeg)).padStart(3, '0')}°`, 26, 102);
-    // Top-right: score, leg, rings, time, wind.
+    // Top-right: score, leg, rings, time, wind — v2 adds the live economy.
     ctx.textAlign = 'right';
     ctx.fillStyle = 'rgba(10, 16, 24, 0.78)';
-    ctx.fillRect(VIEW.width - 344, 12, 330, 102);
+    ctx.fillRect(VIEW.width - 344, 12, 330, 128);
     ctx.strokeStyle = 'rgba(34, 230, 200, 0.5)';
-    ctx.strokeRect(VIEW.width - 344, 12, 330, 102);
+    ctx.strokeRect(VIEW.width - 344, 12, 330, 128);
     ctx.fillStyle = '#7dffd9';
     ctx.font = 'bold 20px monospace';
     ctx.fillText(`SCORE ${flight.score}`, VIEW.width - 26, 38);
+    ctx.fillStyle = '#ffe9a8';
+    ctx.font = 'bold 16px monospace';
+    ctx.fillText(`${rpShort(flight.earnings)}  ·  COMBO x${flight.combo}  ·  STREAK ${flight.streak}`, VIEW.width - 26, 60);
     ctx.fillStyle = '#cfe9f7';
     ctx.font = 'bold 13px sans-serif';
-    ctx.fillText(`${leg.name}  ·  RING ${flight.ringsHit}/${leg.rings}`, VIEW.width - 26, 60);
+    ctx.fillText(`${leg.name}  ·  RING ${flight.ringsHit}/${leg.rings}`, VIEW.width - 26, 82);
     const minutes = Math.floor(flight.legTime / 60);
     const seconds = Math.floor(flight.legTime % 60);
     const windKt = Math.round(Math.hypot(flight.windX, flight.windZ) / KT);
-    ctx.fillText(`TIME ${minutes}:${String(seconds).padStart(2, '0')}  ·  WIND ${windKt} kt`, VIEW.width - 26, 80);
+    ctx.fillText(`TIME ${minutes}:${String(seconds).padStart(2, '0')}  ·  WIND ${windKt} kt`, VIEW.width - 26, 102);
     ctx.fillStyle = '#9fd8cf';
     ctx.font = '11px sans-serif';
-    ctx.fillText(`BEST ${best}`, VIEW.width - 26, 100);
+    ctx.fillText(flight.lastPay > 0 ? `TERAKHIR: ${flight.lastPayLabel} +${rpShort(flight.lastPay)}` : `BEST ${best}`, VIEW.width - 26, 122);
     drawCompass(flight);
     // Next-ring beacon: distance and a steering arrow.
     const next = world.nextRing();
@@ -663,13 +918,13 @@ export function createRenderer(canvas) {
     } else {
       ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(10, 16, 24, 0.7)';
-      ctx.fillRect(VIEW.width / 2 - 150, 108, 300, 30);
+      ctx.fillRect(VIEW.width / 2 - 190, 108, 380, 30);
       ctx.fillStyle = '#ff9f2e';
-      ctx.font = 'bold 15px sans-serif';
+      ctx.font = 'bold 14px sans-serif';
       ctx.fillText('▼ LAND ON THE RUNWAY — FLARE SLOW', VIEW.width / 2, 129);
     }
-    // Centre message and warnings.
-    if (flight.messageTimer > 0 && flight.message) {
+    // Centre message and warnings — hidden under the route map overlay.
+    if (flight.messageTimer > 0 && flight.message && !extra?.routeOverlay) {
       ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(10, 16, 24, 0.75)';
       const w = ctx.measureText(flight.message).width + 36;
@@ -705,17 +960,18 @@ export function createRenderer(canvas) {
     ctx.font = '20px sans-serif';
     ctx.fillText('Kurir udara antar pulau — terbang lewati ring, lalu mendarat mulus di runway.', VIEW.width / 2, 256);
     ctx.fillStyle = 'rgba(10, 16, 24, 0.85)';
-    ctx.fillRect(VIEW.width / 2 - 330, 286, 660, 150);
+    ctx.fillRect(VIEW.width / 2 - 330, 286, 660, 174);
     ctx.strokeStyle = 'rgba(34, 230, 200, 0.6)';
-    ctx.strokeRect(VIEW.width / 2 - 330, 286, 660, 150);
+    ctx.strokeRect(VIEW.width / 2 - 330, 286, 660, 174);
     ctx.fillStyle = '#7dffd9';
     ctx.font = 'bold 16px sans-serif';
     ctx.textAlign = 'left';
     const lines = [
       '← → / A D ......... bank kiri-kanan        ↑ ↓ / W S ......... naik-turun',
       'SHIFT / CTRL ..... throttle naik-turun     MOUSE ............ kemudikan pesawat',
-      'SPASI / klik ....... rem (saat mendarat)   P pause · M suara · R ulangi',
+      'SPASI / klik ....... rem (saat mendarat)   E radio · TAB peta rute · 1/2/3 refit',
       'Terbang lewati RING hijau berurutan, lalu mendarat di RUNWAY pulau tujuan.',
+      'Tiap ring mengantar kargo bernama — tepat waktu = fare + tip. Jaga combo!',
       'Hati-hati: kecepatan rendah = STALL, bahan bakar habis = jatuh ke laut.',
     ];
     lines.forEach((line, i) => {
@@ -770,18 +1026,49 @@ export function createRenderer(canvas) {
     ctx.fillRect(0, 0, VIEW.width, VIEW.height);
     ctx.textAlign = 'center';
     ctx.fillStyle = '#22e6c8';
-    ctx.font = 'bold 54px sans-serif';
-    ctx.fillText(`SELAMAT DATANG DI ${leg.to.toUpperCase()}!`, VIEW.width / 2, 280);
+    ctx.font = 'bold 40px sans-serif';
+    ctx.fillText(`SELAMAT DATANG DI ${leg.to.toUpperCase()}!`, VIEW.width / 2, 170);
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 28px monospace';
-    ctx.fillText(`BONUS MENDARAT +${bonus}`, VIEW.width / 2, 336);
+    ctx.fillText(`BONUS MENDARAT +${bonus}  ·  UANG ${rpShort(flight.earnings)}`, VIEW.width / 2, 226);
     ctx.fillStyle = '#cfe9f7';
     ctx.font = '20px sans-serif';
-    ctx.fillText(`Skor sementara: ${flight.score}  ·  Ring: ${flight.ringsHit}/${leg.rings}`, VIEW.width / 2, 376);
+    ctx.fillText(`Skor sementara: ${flight.score}  ·  Ring: ${flight.ringsHit}/${leg.rings}  ·  Kargo antar: ${flight.delivered}`, VIEW.width / 2, 262);
+    // v2 — goals checklist for the finished leg.
+    ctx.fillStyle = '#ffe9a8';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.fillText('MISI LEG INI:', VIEW.width / 2, 300);
+    ctx.fillStyle = '#cfe9f7';
+    ctx.font = '17px sans-serif';
+    (flight.goals ?? []).forEach((goal, i) => {
+      ctx.fillText(`${goal.done ? '☑' : '☐'} ${goal.label}`, VIEW.width / 2, 328 + i * 26);
+    });
+    // v2 — REFIT: spend earned rupiah before the next leg (keys 1/2/3).
+    const refitY = 328 + (flight.goals ?? []).length * 26 + 18;
+    ctx.fillStyle = 'rgba(10, 16, 24, 0.9)';
+    ctx.fillRect(VIEW.width / 2 - 420, refitY, 840, 118);
+    ctx.strokeStyle = 'rgba(255, 159, 46, 0.7)';
+    ctx.strokeRect(VIEW.width / 2 - 420, refitY, 840, 118);
+    ctx.fillStyle = '#ff9f2e';
+    ctx.font = 'bold 17px sans-serif';
+    ctx.fillText('REFIT — BELI UPGRADE DENGAN UANGMU (tekan 1 / 2 / 3)', VIEW.width / 2, refitY + 26);
+    UPGRADES.forEach((up, i) => {
+      const level = flight.upgrades[up.id] ?? 0;
+      const price = up.base + up.step * level;
+      const afford = flight.earnings >= price && level < up.max;
+      const ux = VIEW.width / 2 - 390 + i * 280;
+      ctx.fillStyle = afford ? '#7dffd9' : '#8fa3b3';
+      ctx.font = 'bold 15px sans-serif';
+      ctx.fillText(`[${up.key}] ${up.name}  Lv${level}/${up.max}`, ux, refitY + 56);
+      ctx.fillStyle = '#cfe9f7';
+      ctx.font = '13px sans-serif';
+      ctx.fillText(`${up.desc}`, ux, refitY + 78);
+      ctx.fillText(level >= up.max ? 'MAX' : `${rpShort(price)}`, ux, refitY + 98);
+    });
     ctx.fillStyle = '#ffe9a8';
     ctx.font = 'bold 22px sans-serif';
     const next = LEGS[Math.min(flight.leg + 1, LEGS.length - 1)];
-    ctx.fillText(flight.leg + 1 < LEGS.length ? `Rute berikutnya: ${next.name} — tekan ENTER` : 'Semua rute selesai — tekan ENTER untuk terbang lagi', VIEW.width / 2, 436);
+    ctx.fillText(flight.leg + 1 < LEGS.length ? `Rute berikutnya: ${next.name} — tekan ENTER` : 'Semua rute selesai — tekan ENTER untuk terbang lagi', VIEW.width / 2, refitY + 140);
   }
 
   return {
@@ -798,10 +1085,20 @@ export function createRenderer(canvas) {
       drawPalms(world, flight);
       drawClouds(world, flight, palette);
       drawBirds(world, flight, time);
+      drawLandmarks(world, flight, palette, flight.leg, time);
       if (leg.palette === 'storm') drawRain(palette, time, 0.7);
       drawPlane(flight, time);
       if (screen === SCREEN_PLAY || screen === SCREEN_PAUSED || screen === SCREEN_LEG) {
-        drawHud(flight, world, leg, best);
+        // v2 — on the leg-complete screen the HUD beacon/message and the
+        // dialog bubble stay off: the leg screen owns the centre (title,
+        // goals, refit) and the side panels stay visible at the edges.
+        if (screen !== SCREEN_LEG) {
+          drawHud(flight, world, leg, best, extra);
+          drawDialog(flight, extra);
+        }
+        drawManifest(flight, leg);
+        drawRouteGoals(flight, leg, extra);
+        drawKeyboardBar();
         drawPanel(flight, time);
       }
       if (screen === SCREEN_TITLE) drawTitle(flight, world, best, time);

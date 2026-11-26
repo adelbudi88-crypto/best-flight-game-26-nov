@@ -1,7 +1,7 @@
 // The flight model: throttle, speed, pitch, bank, heading, wind and fuel. Pure
 // numbers in, pure numbers out — no canvas, no sound — so the screenshot scenes
 // can fly the same physics as the player, and a test can step it headlessly.
-import { LEGS, PLANE, RING, RUNWAY, STEP } from './config.js';
+import { DIALOGS, GOALS, LEGS, MANIFESTS, PLANE, RING, RUNWAY, STEP, UPGRADES } from './config.js';
 
 const RING_PASS_DISTANCE = 40;
 const RING_RADIUS = RING.radius;
@@ -48,7 +48,57 @@ export function createFlight(seed) {
     eventData: null,
     message: '',
     messageTimer: 0,
+    // --- v2 economy / manifest / goals / dialog / refit ---------------------
+    earnings: 0, // rupiah earned this run (fare + tip + landing pay)
+    lastPay: 0, // rupiah of the most recent delivery / landing
+    lastPayLabel: '',
+    combo: 0, // consecutive rings threaded without a miss
+    streak: 0, // consecutive on-time deliveries
+    bestStreak: 0,
+    delivered: 0, // cargo items delivered this leg
+    manifest: [],
+    goals: [],
+    dialog: null, // { who, line, timer }
+    dialogCount: 0,
+    upgrades: { fuel: 0, hull: 0, engine: 0 },
+    smoothLanding: false,
+    crashedThisLeg: false,
   };
+
+  function setDialog(who, line, seconds) {
+    state.dialog = { who, line, timer: seconds };
+    state.dialogCount += 1;
+  }
+
+  function manifestFor(legIndex) {
+    return (MANIFESTS[legIndex] ?? []).map((item) => ({ ...item, status: 'pending', paid: 0 }));
+  }
+
+  function goalsFor(legIndex) {
+    return (GOALS[legIndex] ?? []).map((goal) => ({ ...goal, done: false, progress: 0 }));
+  }
+
+  // v2 — E (radio): the co-pilot answers with a line about the flight.
+  function radio() {
+    const lines = DIALOGS.radio;
+    const line = lines[state.dialogCount % lines.length];
+    setDialog(line.who, line.line, 3.5);
+  }
+
+  // v2 — buy a refit upgrade between legs. Returns true when bought.
+  function buyUpgrade(id) {
+    const def = UPGRADES.find((u) => u.id === id);
+    if (!def) return false;
+    const level = state.upgrades[id] ?? 0;
+    if (level >= def.max) return false;
+    const price = def.base + def.step * level;
+    if (state.earnings < price) return false;
+    state.earnings -= price;
+    state.upgrades[id] = level + 1;
+    if (id === 'hull') state.hull = Math.min(100, state.hull + 40);
+    setDialog('SARI (co-pilot)', `${def.name} terpasang! Level ${level + 1}.`, 3);
+    return true;
+  }
 
   function legDef() {
     return LEGS[Math.min(state.leg, LEGS.length - 1)];
@@ -75,7 +125,7 @@ export function createFlight(seed) {
     state.roll = 0;
     state.speed = 58;
     state.throttle = 0.72;
-    state.fuel = PLANE.fuelCapacity;
+    state.fuel = PLANE.fuelCapacity + state.upgrades.fuel * 20;
     state.legTime = 0;
     state.verticalSpeed = 0;
     state.stalled = false;
@@ -83,11 +133,26 @@ export function createFlight(seed) {
     state.onGround = false;
     state.ringsHit = 0;
     state.ringsTotal = leg.rings;
+    state.combo = 0;
+    state.delivered = 0;
+    state.smoothLanding = false;
+    state.crashedThisLeg = false;
+    state.manifest = manifestFor(legIndex);
+    state.goals = goalsFor(legIndex);
+    const takeoff = DIALOGS.takeoff[legIndex % DIALOGS.takeoff.length];
+    setDialog(takeoff.who, takeoff.line, 5);
     if (!keepScore) {
       state.score = 0;
       state.totalTime = 0;
       state.lives = PLANE.lives;
       state.hull = PLANE.hull;
+      state.earnings = 0;
+      state.lastPay = 0;
+      state.lastPayLabel = '';
+      state.combo = 0;
+      state.streak = 0;
+      state.bestStreak = 0;
+      state.upgrades = { fuel: 0, hull: 0, engine: 0 };
     }
     announce(`${leg.from} → ${leg.to} — ${leg.rings} rings, then land`, 4);
   }
@@ -99,6 +164,8 @@ export function createFlight(seed) {
     legDef,
     resetForLeg,
     announce,
+    radio,
+    buyUpgrade,
 
     // One fixed step. `control` is { roll, pitch, throttleUp, throttleDown, brake }
     // in -1..1 / booleans; `terrain` answers ground height at (x, z); `rings` is
@@ -109,11 +176,13 @@ export function createFlight(seed) {
       state.legTime += dt;
       state.totalTime += dt;
       if (state.messageTimer > 0) state.messageTimer -= dt;
+      if (state.dialog && state.dialog.timer > 0) state.dialog.timer -= dt;
 
       // --- throttle and speed -------------------------------------------------
       if (control.throttleUp) state.throttle = Math.min(1, state.throttle + dt * 0.45);
       if (control.throttleDown) state.throttle = Math.max(0, state.throttle - dt * 0.6);
-      let targetSpeed = PLANE.minSpeed + state.throttle * (PLANE.cruiseSpeed - PLANE.minSpeed);
+      // v2 refit: turbo engine adds +6 kt per level to the target speed.
+      let targetSpeed = PLANE.minSpeed + state.throttle * (PLANE.cruiseSpeed - PLANE.minSpeed) + state.upgrades.engine * 6;
       if (control.brake) targetSpeed = Math.min(targetSpeed, 30);
       const accel = state.speed < targetSpeed ? 9 : 13;
       state.speed += Math.max(-accel * dt, Math.min(accel * dt, targetSpeed - state.speed));
@@ -171,6 +240,7 @@ export function createFlight(seed) {
         const dz = ring.z - state.z;
         if (dz < -RING_PASS_DISTANCE) {
           ring.missed = true;
+          state.combo = 0;
           setEvent(EVENT_RING_MISSED, { ring: ring.index });
           announce(`Ring ${ring.index + 1} missed`, 2);
           continue;
@@ -181,8 +251,35 @@ export function createFlight(seed) {
         if (dist < RING_RADIUS + 4) {
           ring.passed = true;
           state.ringsHit += 1;
+          state.combo += 1;
           const bonus = leg.ringBonus + Math.round(state.speed * 0.4);
           state.score += bonus;
+          // v2 — deliver the manifest item tied to this ring: fare always,
+          // tip only when still inside the item's due time (on-time streak).
+          const item = state.manifest.find((m) => m.ring === ring.index && m.status === 'pending');
+          if (item) {
+            const onTime = state.legTime <= item.due;
+            const tip = onTime ? item.tip : 0;
+            const paid = item.fare + tip;
+            item.status = 'delivered';
+            item.paid = paid;
+            state.delivered += 1;
+            state.earnings += paid;
+            state.lastPay = paid;
+            state.lastPayLabel = `${item.name} — ${item.cargo}`;
+            if (onTime) {
+              state.streak += 1;
+              state.bestStreak = Math.max(state.bestStreak, state.streak);
+            } else {
+              state.streak = 0;
+            }
+            const cargoGoal = state.goals.find((g) => g.id === 'cargo');
+            if (cargoGoal) {
+              cargoGoal.progress = state.delivered;
+              if (state.delivered >= cargoGoal.target) cargoGoal.done = true;
+            }
+            setDialog(item.name.toUpperCase(), `"${item.cargo}" diterima! +Rp${paid.toLocaleString('id-ID')}${onTime ? ' (tepat waktu, tip!)' : ''}`, 4);
+          }
           setEvent(EVENT_RING, { ring: ring.index, bonus });
           announce(`RING ${ring.index + 1}/${leg.rings}  +${bonus}`, 1.6);
         }
@@ -204,6 +301,18 @@ export function createFlight(seed) {
           const timeBonus = Math.max(0, Math.round((leg.parTime - state.legTime) * 2));
           const bonus = leg.landingBonus + Math.round(smooth * 300) + timeBonus;
           state.score += bonus;
+          // v2 — landing pay in rupiah + goals: smooth landing and no-damage.
+          const landingPay = bonus * 100;
+          state.earnings += landingPay;
+          state.lastPay = landingPay;
+          state.lastPayLabel = `Landing ${leg.to}`;
+          state.smoothLanding = smooth >= 0.7;
+          const smoothGoal = state.goals.find((g) => g.id === 'smooth');
+          if (smoothGoal && state.smoothLanding) { smoothGoal.done = true; smoothGoal.progress = 1; }
+          const hullGoal = state.goals.find((g) => g.id === 'hull');
+          if (hullGoal && !state.crashedThisLeg && state.hull >= 100) { hullGoal.done = true; hullGoal.progress = 1; }
+          const landingLine = DIALOGS.landing[state.leg % DIALOGS.landing.length];
+          setDialog(landingLine.who, `${landingLine.line} (+Rp${landingPay.toLocaleString('id-ID')})`, 5);
           setEvent(EVENT_LANDED, { leg: state.leg, bonus, smooth });
           announce(`TOUCHDOWN — ${leg.to}!  +${bonus}`, 3);
         }
@@ -227,9 +336,13 @@ export function createFlight(seed) {
         } else {
           state.hull -= 34;
           state.lives -= 1;
+          state.combo = 0;
+          state.streak = 0;
+          state.crashedThisLeg = true;
           state.alt = ground + 1.5;
           setEvent(EVENT_CRASH, { ground, hull: state.hull, lives: state.lives });
           announce(state.lives > 0 ? 'CRASH — hull damaged!' : 'CRASH — no planes left', 3);
+          setDialog('SARI (co-pilot)', 'Aduh! Hull rusak — kargo masih selamat, terbang hati-hati!', 4);
         }
       }
       if (state.alt < 2) state.alt = 2;
