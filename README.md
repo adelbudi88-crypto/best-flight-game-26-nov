@@ -1,5 +1,9 @@
 # Nusantara Air Courier
 
+[![make.fun](https://make.fun/badge/best-flight-game-20261126-0057.svg)](https://make.fun/bounty/best-flight-game-20261126-0057)
+[![rank](https://make.fun/badge/best-flight-game-20261126-0057/adelbudi88-crypto/best-flight-game-26-nov/rank.svg)](https://make.fun/bounty/best-flight-game-20261126-0057)
+[![reward](https://make.fun/badge/best-flight-game-20261126-0057/adelbudi88-crypto/best-flight-game-26-nov/reward.svg)](https://make.fun/bounty/best-flight-game-20261126-0057)
+
 **Nusantara Air Courier** — island-hopper flight game. You fly a little prop courier plane across the Indonesian archipelago: thread the glowing rings in order, then put her down gently on the destination runway island. Three legs — Jakarta → Krakatau → Bali → Raja Ampat — with wind, gusts and weather getting meaner every hop, and a storm leg at dusk to finish.
 
 ## Run it
