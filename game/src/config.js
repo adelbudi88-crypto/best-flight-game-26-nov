@@ -32,6 +32,8 @@ export const CAMERA = {
 
 // One leg is one island hop: rings to thread, then a runway landing. The wind,
 // the light and the weather get harsher every hop, and the pay gets better.
+// v3 — each leg has its own cinematic light (golden morning, sunset, storm
+// dusk) and a mission brief line for the bottom mission bar.
 export const LEGS = [
   {
     name: 'Jakarta — Krakatau',
@@ -41,7 +43,8 @@ export const LEGS = [
     wind: 2.5,
     windDir: 0.6,
     gust: 1.2,
-    palette: 'day',
+    palette: 'gold',
+    brief: 'SORTIE 1 — CLINIC RUN · Obat Bu Ratna ke Krakatau',
     ringBonus: 150,
     landingBonus: 400,
     parTime: 150,
@@ -54,7 +57,8 @@ export const LEGS = [
     wind: 5.5,
     windDir: -0.9,
     gust: 2.6,
-    palette: 'dusk',
+    palette: 'sunset',
+    brief: 'SORTIE 2 — TEMPLE RUN · Canang sari Pak Made ke Bali',
     ringBonus: 200,
     landingBonus: 600,
     parTime: 180,
@@ -67,7 +71,8 @@ export const LEGS = [
     wind: 9,
     windDir: 0.4,
     gust: 4.5,
-    palette: 'storm',
+    palette: 'stormdusk',
+    brief: 'SORTIE 3 — STORM RUN · Vaksin Kak Yosua ke Raja Ampat',
     ringBonus: 250,
     landingBonus: 900,
     parTime: 220,
@@ -163,30 +168,37 @@ export const PLACES = [
   { name: 'Raja Ampat', landmark: 'Laguna Wayag + karst', note: 'laguna biru + karst' },
 ];
 
+// v3 — CINEMATIC PALETTES: one look per leg. sunElev is the sun's height as
+// a fraction of the frame (low sun = long glitter path on the sea); glitter
+// draws the sun path on the water; rain is the rain intensity 0..1 and
+// lightning turns on the deterministic storm bolts (visible at shot time 12).
 export const PALETTES = {
-  day: {
-    skyTop: '#2f7fd0', skyMid: '#7ec0ee', skyLow: '#cfe9f7',
-    sun: '#fff3b0', sunGlow: 'rgba(255, 240, 170, 0.55)',
-    seaDeep: '#0b4f7a', sea: '#1478a8', seaShallow: '#2fa8a0',
+  gold: {
+    skyTop: '#2b6cc4', skyMid: '#f0b45c', skyLow: '#ffe9b8',
+    sun: '#fff6c8', sunGlow: 'rgba(255, 220, 130, 0.6)',
+    sunElev: 0.18, sunSize: 30, glitter: true, rain: 0, lightning: false,
+    seaDeep: '#0a4a72', sea: '#1273a0', seaShallow: '#2fa8a0',
     sand: '#e8d29a', grass: '#4d9b4f', forest: '#2e7d46',
     rock: '#8a7a6a', snow: '#f4f6f8', cloud: 'rgba(255,255,255,0.92)',
-    haze: 'rgba(207, 233, 247, 0.55)', fog: 0.0016,
+    haze: 'rgba(255, 233, 184, 0.5)', fog: 0.0010,
   },
-  dusk: {
-    skyTop: '#3a2d6b', skyMid: '#c65f6e', skyLow: '#ffb37a',
-    sun: '#ffcf8a', sunGlow: 'rgba(255, 150, 80, 0.5)',
+  sunset: {
+    skyTop: '#2c1e5e', skyMid: '#e2603f', skyLow: '#ffb37a',
+    sun: '#ffcf8a', sunGlow: 'rgba(255, 130, 60, 0.62)',
+    sunElev: 0.30, sunSize: 36, glitter: true, rain: 0, lightning: false,
     seaDeep: '#1c2f5e', sea: '#2c4f7e', seaShallow: '#3f7d8c',
     sand: '#d9b078', grass: '#4a7d4a', forest: '#2c5c3e',
     rock: '#6e5a52', snow: '#e8d8d0', cloud: 'rgba(255, 205, 180, 0.85)',
-    haze: 'rgba(255, 179, 122, 0.45)', fog: 0.0021,
+    haze: 'rgba(255, 179, 122, 0.5)', fog: 0.0012,
   },
-  storm: {
-    skyTop: '#1c2436', skyMid: '#3c4a63', skyLow: '#6b7a8c',
-    sun: '#cfd8e2', sunGlow: 'rgba(200, 210, 225, 0.3)',
+  stormdusk: {
+    skyTop: '#121826', skyMid: '#37455e', skyLow: '#5c6b7a',
+    sun: '#8a97a8', sunGlow: 'rgba(180, 195, 215, 0.25)',
+    sunElev: 0.14, sunSize: 20, glitter: false, rain: 1, lightning: true,
     seaDeep: '#0a2438', sea: '#123f58', seaShallow: '#1d5f66',
     sand: '#b09a72', grass: '#3d7040', forest: '#244d33',
-    rock: '#5e564e', snow: '#c9ced4', cloud: 'rgba(120, 130, 145, 0.9)',
-    haze: 'rgba(107, 122, 140, 0.5)', fog: 0.0028,
+    rock: '#5e564e', snow: '#c9ced4', cloud: 'rgba(110, 120, 138, 0.9)',
+    haze: 'rgba(107, 122, 140, 0.55)', fog: 0.0015,
   },
 };
 

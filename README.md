@@ -6,6 +6,18 @@
 
 **Nusantara Air Courier** — island-hopper flight game. You fly a little prop courier plane across the Indonesian archipelago: thread the glowing rings in order, then put her down gently on the destination runway island. Three legs — Jakarta → Krakatau → Bali → Raja Ampat — with wind, gusts and weather getting meaner every hop, and a storm leg at dusk to finish.
 
+## v3 — cinematic regrade (26 Nov 2026)
+
+Round 1 scored v2 at 627.799, rank 998/6.258 — the pack around it is only 0.312 points wide, so the game was readable but flat next to the neighbours: flat-shaded checker terrain, pale midday light, four big dark panels eating ~50% of the frame, and a paper-flat plane. v3 regrades the picture without touching the flight model, the world, or any v2 system:
+
+- **One light per leg** — golden morning (Jakarta → Krakatau), orange-to-purple sunset (Krakatau → Bali), storm dusk (Bali → Raja Ampat). Stronger sky gradients, a low sun with a wide glow, and a glitter path shimmering on the sea under it.
+- **Terrain with shading** — slope shading from the height gradient across every quad (sunlit slopes bright, shaded slopes dark), fine noise ripple instead of the 90 m checker, stronger distance haze, and two-tone facet shading on far islands.
+- **Slim tape HUD** — airspeed tape on the left edge, altitude tape on the right edge, a slim compass tape up top, and a 96 px instrument strip with THR/FUEL/TEMP/DMG mini-bars, attitude ball, ALT/SPD readouts, hull + lives, runway distance, and a round heading-up radar minimap (rings, runway, plane). Manifest and route panels narrowed to ~220 px — the world now fills ~75% of the frame.
+- **Mission language in-world** — the three nearest gates carry labels like `G-02 · 480m`, the next ring glows bigger with a halo, PAPI lights (white/red by real glidepath angle) guard the threshold, and a mission-brief bar tells the story with live RINGS · SCORE · TIME · NEXT RING.
+- **Weather drama** — deterministic lightning (a bolt every 4 s, seeded per strike, so the storm screenshot always catches one), heavier rain on the storm leg, bigger volcano smoke on every leg, and a horizon cloud bank under soft radial-gradient clouds.
+- **Plane redrawn** — bigger, with a shaded fuselage (bright spine, dark flanks), red/green nav lights on the wingtips, a wider prop blur disc, and a harder shadow.
+- **Re-staged shots** — cover is now the leg-2 sunset with a ring ahead and a smoking volcano; ring shows the gate label up close; approach shows PAPI + runway perspective; storm shows lightning + rain.
+
 ## v2 — what changed (26 Nov 2026)
 
 Winner research on the cooking-game final board (kiencx 895.499, wildanhabibie 877.662, jackripper 876.326) showed v1 was clean but empty next to the winners: every region of their screens is a live system. v2 fills the frame without changing the chase view, rings or runway:

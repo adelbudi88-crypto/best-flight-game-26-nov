@@ -1,9 +1,13 @@
-// Nusantara Air Courier v2 — a best-flight-game-20261126-0057 entry (Node 22,
-// standard library only). v2 adds the winner-density systems on top of v1's
-// chase view: a named manifest with fare + tip, a per-leg goals checklist, a
-// live rupiah economy with combo/streak, a four-stop route plan, crew and
-// passenger dialog, between-leg refits, a full keyboard bar, and a distinct
-// look per island (Krakatau smoke, Bali terraces + temple, Raja Ampat karst).
+// Nusantara Air Courier v3 — a best-flight-game-20261126-0057 entry (Node 22,
+// standard library only). v3 is the cinematic regrade on top of v2's
+// winner-density systems: one dramatic light per leg (golden morning, sunset,
+// storm dusk), slope-shaded terrain with a sun-glitter path on the sea, a slim
+// tape HUD with engine bars and a radar minimap, in-world gate labels, PAPI
+// lights, deterministic lightning, and a redrawn plane with real volume —
+// while keeping v2's named manifest with fare + tip, goals checklist, live
+// rupiah economy with combo/streak, four-stop route plan, crew and passenger
+// dialog, between-leg refits, full keyboard bar, and a distinct look per
+// island (Krakatau smoke, Bali terraces + temple, Raja Ampat karst).
 // The game is this directory's game/ folder: plain static files a desktop
 // browser loads offline (game/index.html and its ES modules, no library and
 // no network request). This program hands it in: it copies game/ and
