@@ -5,7 +5,7 @@
 // looks like and the same seed always gives the same frame.
 import { PLANE, STEP } from './config.js';
 import { EVENT_CRASH, EVENT_LANDED, EVENT_LEG_COMPLETE, EVENT_RING } from './flight.js';
-import { SCREEN_PLAY } from './render.js';
+import { SCREEN_PLAY } from './render3d.js'; // v4 — the scenes now stage a real 3D world
 
 // Steer the plane toward a point: bank for a heading rate proportional to the
 // heading error (so the turn tightens gently and never overshoots into a
@@ -64,10 +64,11 @@ function flySteps(flight, world, seconds, steer, stopWhen) {
   }
 }
 
-// v3 — the cover is now leg 2 (Krakatau — Bali) at SUNSET: the low orange sun,
-// its glitter path on the sea, a ring dead ahead and a smoking volcano on the
-// horizon. The pilot threads three rings first so the frame shows a ring just
-// ahead and the score already moving.
+// v4 — the cover is still leg 2 (Krakatau — Bali) at SUNSET, but now in real
+// 3D: the low orange sun is a WebGL sprite with a specular glitter path on
+// the Phong sea, the ring ahead is a glowing torus, and the smoking volcano
+// is a 3D cone with rising smoke sprites. The pilot threads three rings
+// first so the frame shows a ring just ahead and the score already moving.
 function stageCover(flight, world) {
   flight.resetForLeg(1, true);
   world.startLeg(1);
@@ -111,18 +112,28 @@ function stageApproach(flight, world) {
     if (!next) return autopilot(f, w, { x: w.runway.x, y: 90, z: w.runway.z }, 55);
     return autopilot(f, w, next, 62);
   });
-  // Stop on short final, about 350 m out: the runway fills the frame, the
-  // plane is lined up and descending, and it has not overshot the threshold.
-  flySteps(flight, world, 26, (f, w) => {
+  // v4 — the approach must be shot from about 600 m out, not 350: at 350 m
+  // the strip sat behind the plane model and the dialog box, so the shot
+  // showed no runway at all. But the 58 s first phase already flies the
+  // plane to ~300 m out, so a plain "fly to 600 m" phase would break on its
+  // first step. Instead: back out south to ~800 m first (a real turn + leg
+  // flown by the autopilot), then come back in and stop at 600 m, where the
+  // whole strip (threshold to far end) projects between the plane and the
+  // dialog box, with the PAPI + approach lights leading the eye to it.
+  flySteps(flight, world, 16, (f, w) => {
+    const runway = w.runway;
+    return autopilot(f, w, { x: runway.x, y: runway.y + 90, z: runway.z - 800 }, 50);
+  }, (f, w) => w.runway.z - f.state.z > 750);
+  flySteps(flight, world, 20, (f, w) => {
     const runway = w.runway;
     const dz = runway.z - f.state.z;
     const target = {
       x: runway.x,
-      y: Math.max(60, runway.y + Math.max(12, dz * 0.045)),
+      y: Math.max(70, runway.y + Math.max(12, dz * 0.055)),
       z: runway.z - 60,
     };
     return autopilot(f, w, target, dz > 500 ? 50 : 38);
-  }, (f, w) => w.runway.z - 60 - f.state.z < 350);
+  }, (f, w) => w.runway.z - 60 - f.state.z < 600);
   // v3 — approach shot: co-pilot calls the landing with Anak Krakatau abeam.
   flight.state.dialog = { who: 'SARI (co-pilot)', line: 'Runway di depan! Anak Krakatau di kiri — turun pelan, flare lembut.', timer: 99 };
   return { screen: SCREEN_PLAY, best: 2450 };

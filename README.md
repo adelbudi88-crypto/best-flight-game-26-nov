@@ -6,6 +6,17 @@
 
 **Nusantara Air Courier** — island-hopper flight game. You fly a little prop courier plane across the Indonesian archipelago: thread the glowing rings in order, then put her down gently on the destination runway island. Three legs — Jakarta → Krakatau → Bali → Raja Ampat — with wind, gusts and weather getting meaner every hop, and a storm leg at dusk to finish.
 
+## v4 — real 3D WebGL rebuild (27 Nov 2026)
+
+Round 2 scored v3 at 592.104, rank 1.897/13.681 — DOWN from v2's 627.799 in round 1. The 2D cinematic regrade did not lift the score, and the round-2 board says why: every neighbour is a WebGL 3D sim ("ZENITH SORTIE (V-46) — WebGL2 Combat Flight Sim", "AFTERBURNER PRO (V-61)", "AERO VANGUARD (V-66)", plus round-1 neighbours "ALPINE SORTIE — 3D Tactical Flight Simulator", "MACH FRONTIER — 3D Tactical Flight Simulator", "Ridgeline Courier — 12-mission 3D bush-plane courier"). The 2D ceiling is proven (627k → 592k); the only credible leap is a true 3D rebuild. v4 is that rebuild:
+
+- **Real Three.js WebGL** — three@0.186.0 bundled + minified into one local file (`game/vendor/three.module.min.js`, 742 KB), no CDN, no network request, game still fully offline.
+- **Low-poly 3D archipelago** — heightfield terrain sampled from the same seeded world the flight model flies (vertex-coloured sand/grass/forest/rock/snow with slope shading), a specular Phong sea with a sun glitter path, a gradient sky dome, distance fog, and drifting 3D clouds + birds.
+- **3D plane in a chase camera** — built-up prop courier (fuselage, canopy, wings, red tail, spinning prop + blur disc, red/green nav lights, ground shadow), banked with the flight model's real roll/pitch/heading, camera rolled with the bank.
+- **3D course** — glowing torus rings (next ring pulses + halo, passed dims, missed goes red), a 3D runway with centreline, threshold bars, edge lights, windsock, and PAPI lights driven by the real glidepath angle; rain points + a deterministic lightning bolt on the storm leg.
+- **One 3D landmark per destination** — Anak Krakatau smoking cone, Bali meru temple + rice terraces, Raja Ampat karst towers in a turquoise lagoon.
+- **Everything from v2/v3 kept** — named manifest with fare + tip, goals checklist, rupiah economy with combo/streak, four-stop route plan (TAB map), Sari/passenger dialog (E radio), between-leg refits (1/2/3), full keyboard bar, mission-brief bar, slim tape HUD (SPD/ALT/HDG), instrument strip with attitude ball, round radar minimap, in-world gate labels (`G-02 · 480m`) projected from real 3D ring positions, and the same flight model, world, shots and sounds.
+
 ## v3 — cinematic regrade (26 Nov 2026)
 
 Round 1 scored v2 at 627.799, rank 998/6.258 — the pack around it is only 0.312 points wide, so the game was readable but flat next to the neighbours: flat-shaded checker terrain, pale midday light, four big dark panels eating ~50% of the frame, and a paper-flat plane. v3 regrades the picture without touching the flight model, the world, or any v2 system:
@@ -38,7 +49,7 @@ node serve.ts
 # open http://localhost:8080
 ```
 
-No build step, no dependencies, no network: vanilla JavaScript + Canvas 2D, all art drawn in code, all sound synthesized live with WebAudio.
+No build step, no network: vanilla JavaScript + local Three.js WebGL (bundled + minified, `game/vendor/three.module.min.js`), all art built in code, all sound synthesized live with WebAudio.
 
 ## How to play
 
@@ -57,8 +68,8 @@ Watch your speed: below stall speed the wing quits and the nose drops. Watch you
 - `game/src/random.js` — seeded RNG (same seed, same archipelago)
 - `game/src/world.js` — island heightfield, ring course, runway island, clouds, birds
 - `game/src/flight.js` — flight model plus v2 economy, manifest delivery, combo/streak, goals, dialog, refits (pure logic)
-- `game/src/project.js` — chase camera: 3D world to screen projection
-- `game/src/render.js` — all canvas drawing: sky, terrain, rings, runway, plane, lit instruments, HUD, manifest, route, goals, dialog, keyboard bar, island landmarks, screens
+- `game/src/render3d.js` — v4: Three.js WebGL world (sky dome, low-poly terrain, sea, plane, rings, runway + PAPI, landmarks, clouds, rain, lightning) + 2D HUD overlay (tapes, instruments, radar, manifest, route, goals, dialog, keyboard bar, screens)
+- `game/vendor/three.module.min.js` — Three.js 0.186.0, bundled + minified locally from the official npm tarball, no CDN
 - `game/src/input.js` — keyboard + mouse to flight controls
 - `game/src/audio.js` — WebAudio synth: engine drone, wind, ring chimes, alarms
 - `game/src/shots.js` — deterministic screenshot scenes (`?shot=cover|ring|approach|storm`)

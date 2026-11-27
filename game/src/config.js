@@ -168,6 +168,11 @@ export const PLACES = [
   { name: 'Raja Ampat', landmark: 'Laguna Wayag + karst', note: 'laguna biru + karst' },
 ];
 
+// v4 — the palettes are now read by the WebGL renderer too: skyTop/skyMid/
+// skyLow drive the sky-dome shader + fog, sun/sunGlow drive the sun sprite
+// and the directional light, sea/seaShallow drive the Phong water (its
+// specular highlight is the sun glitter path), and rain/lightning drive the
+// 3D rain points + lightning bolt (visible at shot time 12, cycle 4 s).
 // v3 — CINEMATIC PALETTES: one look per leg. sunElev is the sun's height as
 // a fraction of the frame (low sun = long glitter path on the sea); glitter
 // draws the sun path on the water; rain is the rain intensity 0..1 and
@@ -203,6 +208,9 @@ export const PALETTES = {
 };
 
 export const RING = { radius: 26, tube: 2.2, scoreFlash: 1.2 };
+// v4 — the ring radius/tube above are the 3D torus dimensions too
+// (TorusGeometry in render3d.js), so the flight model's pass distance and
+// the visible ring always agree.
 export const RUNWAY = { length: 260, width: 26, heading: 0 };
 export const BEST_KEY = 'nusantara-air-courier-best';
 export const SCORE_KEY = 'nusantara-air-courier-last';

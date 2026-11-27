@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="data:,">
-<title>Nusantara Air Courier — Island Hopper</title>
+<title>Nusantara Air Courier — Island Hopper 3D (WebGL)</title>
 <style>
   html, body { margin: 0; height: 100%; overflow: hidden; background: #0a1622; }
   #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
@@ -13,6 +13,9 @@
 </style>
 </head>
 <body>
+<!-- v4 — the #game canvas is the Three.js WebGL canvas; render3d.js appends
+     its own 2D HUD overlay canvas on top of it at runtime, so this file stays
+     a plain static page with zero network requests. -->
 <canvas id="game" aria-label="Nusantara Air Courier: fly the island courier plane through the rings, then land on the runway"></canvas>
 <p id="status" role="status" aria-live="polite"></p>
 <script type="module" src="./src/main.js"></script>

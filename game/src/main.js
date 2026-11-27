@@ -1,6 +1,8 @@
-// Boot and the one loop: input is read every frame, the flight model advances
-// in fixed 1/60 s steps, and the renderer paints what is there. The game moves
-// between five screens: title, play, paused, leg complete and game over.
+// Boot and the one loop, v4 — the flight model is unchanged from v2/v3
+// (fixed 1/60 s steps, rings, runway, economy, manifest, refits), only the
+// renderer is new: render3d.js paints a real Three.js WebGL world and a
+// crisp 2D HUD overlay on top of it. The game moves between five screens:
+// title, play, paused, leg complete and game over.
 //
 // ?seed=N fixes the archipelago. ?shot=cover|ring|approach|storm (with &seed=N)
 // stages that scene instead of running the loop, paints it twice and sets
@@ -10,7 +12,7 @@ import { createWorld } from './world.js';
 import { EVENT_CRASH, EVENT_LANDED, EVENT_LEG_COMPLETE, EVENT_RING, createFlight } from './flight.js';
 import { ACTION_CONFIRM, ACTION_MUTE, ACTION_PAUSE, ACTION_RESTART, createInput } from './input.js';
 import { createAudio } from './audio.js';
-import { createRenderer, SCREEN_LEG, SCREEN_OVER, SCREEN_PAUSED, SCREEN_PLAY, SCREEN_TITLE } from './render.js';
+import { createRenderer, SCREEN_LEG, SCREEN_OVER, SCREEN_PAUSED, SCREEN_PLAY, SCREEN_TITLE } from './render3d.js';
 import { autopilot, stageShot } from './shots.js';
 
 const MAX_FRAME = 0.25;
@@ -234,6 +236,9 @@ function runGame() {
 
   announce('Nusantara Air Courier. Press Enter to fly.');
   requestAnimationFrame(frame);
+  // demoMode is only read by startGame (it clears it); kept so the title
+  // autopilot's intent stays visible in the code, not as a hidden flag.
+  void demoMode;
 }
 
 if (shot) runShot(shot);
